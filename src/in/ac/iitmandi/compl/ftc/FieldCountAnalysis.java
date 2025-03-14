@@ -14,7 +14,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -30,9 +29,7 @@ import soot.SootMethod;
 import soot.Unit;
 import soot.jimple.Stmt;
 import soot.jimple.toolkits.callgraph.CallGraph;
-import soot.jimple.toolkits.callgraph.CallGraphBuilder;
 import soot.jimple.toolkits.callgraph.Edge;
-import soot.jimple.toolkits.pointer.DumbPointerAnalysis;
 
 /**
  * @author arjun
@@ -143,6 +140,11 @@ public class FieldCountAnalysis extends SceneTransformer {
 			ContainerMetadata container = getClassInstance(containingClass);
 			container.addFieldOfInterest(field);
 			container.incBoxed_short_count();
+		}else if(field.getType().toQuotedString().equals(CommonConstants.NUMBER)) {
+			SootClass containingClass = field.getDeclaringClass();
+			ContainerMetadata container = getClassInstance(containingClass);
+			container.addFieldOfInterest(field);
+			container.incBoxed_short_count();
 		}
 	}
 
@@ -195,51 +197,51 @@ public class FieldCountAnalysis extends SceneTransformer {
 	private void printResults() {
 		if(CommonUtils.isNotNull(classMap)) {
 			createOutFile();
-			int boxedIntegerFieldCount = 0;
-			int boxedBooleanFieldCount = 0;
-			int boxedByteFieldCount = 0;
-			int boxedShortFieldCount = 0;
-			int boxedCharFieldCount = 0;
-			int boxedFloatFieldCount = 0;
-			int boxedDoubleFieldCount = 0;
-			int boxedLongFieldCount = 0;
-			
-			Iterator<Entry<SootClass, ContainerMetadata>> itr = classMap.entrySet().iterator();
-			while(itr.hasNext()) {
-				Entry<SootClass, ContainerMetadata> entry = itr.next();
-				ContainerMetadata container = entry.getValue();
-				if(isNonLibaryClass(container.getContainerKlass())){
-					writeToOutFile(container.getContainerKlass());
-					if(CommonUtils.isNotNull(container.getFieldsOfInterest())) {
-						boxedIntegerFieldCount+=container.getBoxed_integer_count();
-						boxedBooleanFieldCount+=container.getBoxed_boolean_count();
-						boxedByteFieldCount+=container.getBoxed_byte_count();
-						boxedShortFieldCount+=container.getBoxed_short_count();
-						boxedCharFieldCount+=container.getBoxed_character_count();
-						boxedFloatFieldCount+=container.getBoxed_float_count();
-						boxedDoubleFieldCount+=container.getBoxed_double_count();
-						boxedLongFieldCount+=container.getBoxed_long_count();
-						for(SootField field: container.getFieldsOfInterest()) {
-							writeToOutFile(field);
-						}
-					}
-					writeToOutFile("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*");
-				}
+			for(SootClass klass : CommonConstants.getClassesOfInterest()) {
+				printOutput4Class(klass);
 			}
-			writeToOutFile("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*");
-			writeToOutFile(CommonConstants.BOXED_INTEGER+" count: "+boxedIntegerFieldCount);
-			writeToOutFile(CommonConstants.BOXED_BOOLEAN+" count: "+boxedBooleanFieldCount);
-			writeToOutFile(CommonConstants.BOXED_BYTE+" count: "+boxedByteFieldCount);
-			writeToOutFile(CommonConstants.BOXED_CHARACTER+" count: "+boxedCharFieldCount);
-			writeToOutFile(CommonConstants.BOXED_DOUBLE+" count: "+boxedDoubleFieldCount);
-			writeToOutFile(CommonConstants.BOXED_FLOAT+" count: "+boxedFloatFieldCount);
-			writeToOutFile(CommonConstants.BOXED_LONG+" count: "+boxedLongFieldCount);
-			writeToOutFile(CommonConstants.BOXED_SHORT+" count: "+boxedShortFieldCount);
-			writeToOutFile("*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*");
+			
 		}
 		
 	}
 	
+	private void printOutput4Class(SootClass klass) {
+		if(null != klass) {
+			Set<FieldMetadata> fieldData = new HashSet<>();
+			Iterator<Entry<SootClass, ContainerMetadata>> itr = classMap.entrySet().iterator();
+			while(itr.hasNext()) {
+				Entry<SootClass, ContainerMetadata> entry = itr.next();
+				ContainerMetadata container = entry.getValue();
+				if(isNonLibaryClass(container.getContainerKlass()) && CommonUtils.isNotNull(container.getFieldsOfInterest())){
+					for(SootField field: container.getFieldsOfInterest()) {
+						if(field.getType().toQuotedString().equals(klass.getName())) {
+							fieldData.add(new FieldMetadata(entry.getKey(), field));
+						}
+					}
+				}
+			}
+			if(!fieldData.isEmpty()) {
+				StringBuffer sb = new StringBuffer("L"+klass.getName()+"; "+createString4Containers(fieldData));
+				writeToOutFile(sb.toString());
+			}else {
+				StringBuffer sb = new StringBuffer("L"+klass.getName()+"; 0");
+				writeToOutFile(sb.toString());
+			}
+		}
+	}
+
+	private StringBuffer createString4Containers(Set<FieldMetadata> fieldData) {
+		if(CommonUtils.isNotNull(fieldData)) {
+			StringBuffer sb = new StringBuffer(Integer.toString(fieldData.size())+" ");
+			for(FieldMetadata  fieldMD : fieldData) {
+				sb.append("L"+fieldMD.getContainerKlass().getName()+" ");
+				sb.append(fieldMD.getField().getName()+" ");
+			}
+			return sb;
+		}
+		return null;
+	}
+
 	private boolean isNonLibaryClass(SootClass containerKlass) {
 		if(!containerKlass.isJavaLibraryClass()) {
 			String packageName = containerKlass.getJavaPackageName();

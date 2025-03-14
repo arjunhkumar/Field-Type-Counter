@@ -25,6 +25,7 @@ public class ContainerMetadata {
 	private int boxed_double_count = 0;
 	private int boxed_boolean_count = 0;
 	private int boxed_character_count = 0;
+	private int java_lang_number_count = 0;
 	
 	/**
 	 * @param containerKlass
@@ -109,6 +110,10 @@ public class ContainerMetadata {
 	public void incBoxed_character_count() {
 		this.boxed_character_count++;
 	}
+	
+	public void incJava_lang_number_count() {
+		this.java_lang_number_count++;
+	}
 
 	/**
 	 * @return the boxed_integer_count
@@ -164,6 +169,13 @@ public class ContainerMetadata {
 	 */
 	public int getBoxed_character_count() {
 		return boxed_character_count;
+	}
+
+	/**
+	 * @return the java_lang_number_count
+	 */
+	public int getJava_lang_number_count() {
+		return java_lang_number_count;
 	}
 	
 }
