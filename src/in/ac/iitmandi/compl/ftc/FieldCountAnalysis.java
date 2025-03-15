@@ -42,6 +42,8 @@ public class FieldCountAnalysis extends SceneTransformer {
 	private Set<SootClass> analyzedClasses = new HashSet<>();
 	private static Map<SootClass,ContainerMetadata> classMap;
 	public static final String OUT_FILE_PATH = "./res.out";
+	public static int appClassesAnalyzed = 0;
+	public static int libClassesAnalyzed = 0;
 	
 	@Override
 	protected void internalTransform(String phaseName, Map<String, String> options) {
@@ -84,6 +86,11 @@ public class FieldCountAnalysis extends SceneTransformer {
 	}
 	
 	private void analyzeClass(SootClass classOfIntrest) {
+		if(isNonLibaryClass(classOfIntrest)) {
+			appClassesAnalyzed++;
+		}else {
+			libClassesAnalyzed++;
+		}
 		if(null != classOfIntrest.getFields()) {
 //			System.out.println(classOfIntrest);
 			for(SootField field: classOfIntrest.getFields()) {
@@ -197,6 +204,8 @@ public class FieldCountAnalysis extends SceneTransformer {
 	private void printResults() {
 		if(CommonUtils.isNotNull(classMap)) {
 			createOutFile();
+			System.out.println("No of app classes analyzed = "+appClassesAnalyzed);
+			System.out.println("No of lib classes analyzed = "+libClassesAnalyzed);
 			for(SootClass klass : CommonConstants.getClassesOfInterest()) {
 				printOutput4Class(klass);
 			}
